@@ -56,26 +56,16 @@ export function networkConfigFromRequest(req: NextRequest): NetworkConfig {
 }
 
 /**
- * The matcher operator secret for a network.
+ * The matcher operator secret that pays settlement fees.
  *
- * Each network has its own funded operator account — the mainnet operator's key
- * is meaningless on testnet and vice versa — so the secret is per-network.
- * `MATCHER_OPERATOR_SECRET` (unsuffixed) is the legacy single-network var and
- * belongs to the deployment's primary network, so existing deployments are
- * unaffected.
- *
+ * `MATCHER_OPERATOR_SECRET_TESTNET` wins when set (the spelling from when the
+ * app also served mainnet); `MATCHER_OPERATOR_SECRET` is the plain one.
  * Returns undefined rather than throwing so the caller can answer with its own
- * 500 shape; it deliberately never falls back to the other network's key, which
- * would sign a settlement with an account that cannot pay on the target chain.
+ * 500 shape.
  */
 export function matcherOperatorSecret(network: NetworkId): string | undefined {
-  const explicit =
-    network === "mainnet"
-      ? process.env.MATCHER_OPERATOR_SECRET_MAINNET
-      : process.env.MATCHER_OPERATOR_SECRET_TESTNET;
-  if (explicit) return explicit;
-  if (network === PRIMARY_NETWORK) return process.env.MATCHER_OPERATOR_SECRET;
-  return undefined;
+  void network; // one network today; kept in the signature for call sites
+  return process.env.MATCHER_OPERATOR_SECRET_TESTNET || process.env.MATCHER_OPERATOR_SECRET;
 }
 
 export { PRIMARY_NETWORK };

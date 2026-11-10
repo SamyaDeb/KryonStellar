@@ -54,9 +54,9 @@ passphrase:"Test SDF Network ; September 2015"
 horizonUrl:"https://horizon-testnet.stellar.org"
 ```
 
-Override the RPC with `NEXT_PUBLIC_RPC_URL` if you run your own node. For
-mainnet, swap to the mainnet RPC/passphrase and redeploy contracts (new
-addresses).
+Override the RPC with `NEXT_PUBLIC_STELLAR_RPC_URL` if you run your own node.
+Kryon runs on testnet only: `NEXT_PUBLIC_STELLAR_NETWORK` must be `testnet`,
+and a mainnet passphrase override is refused at startup.
 
 ## Markets
 

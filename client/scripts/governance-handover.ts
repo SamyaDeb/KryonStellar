@@ -276,12 +276,12 @@ async function main(): Promise<void> {
   console.log(`  phase      ${PHASE}`);
   console.log(`  mode       ${EXECUTE ? "⚠ EXECUTE — transactions WILL be submitted" : "dry run"}`);
 
-  if (EXECUTE && NETWORK.name === "mainnet") {
+  if (EXECUTE) {
     console.log(
-      `\n  ⚠  This is MAINNET and it is irreversible: after handover the deployer\n` +
-        `     key can no longer act on these contracts directly, only through a\n` +
-        `     48-hour timelock. Confirm the governance address above is correct\n` +
-        `     and that you can still sign as governance admin.\n`
+      `\n  ⚠  This is irreversible: after handover the deployer key can no longer\n` +
+        `     act on these contracts directly, only through the governance\n` +
+        `     timelock. Confirm the governance address above is correct and that\n` +
+        `     you can still sign as governance admin.\n`
     );
     console.log("  Proceeding in 10s — Ctrl-C to abort.");
     await new Promise((r) => setTimeout(r, 10_000));

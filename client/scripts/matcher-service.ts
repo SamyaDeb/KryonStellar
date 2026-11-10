@@ -48,11 +48,7 @@ assertNoPublicSecretLeak();
  * a silent, total outage that looks like a healthy process. Crash instead.
  */
 const OPERATOR_SECRET = (() => {
-  const suffixed =
-    NETWORK.name === "mainnet"
-      ? process.env.MATCHER_OPERATOR_SECRET_MAINNET
-      : process.env.MATCHER_OPERATOR_SECRET_TESTNET;
-  const secret = suffixed || process.env.MATCHER_OPERATOR_SECRET;
+  const secret = process.env.MATCHER_OPERATOR_SECRET_TESTNET || process.env.MATCHER_OPERATOR_SECRET;
   if (!secret) {
     const suffixedName = `MATCHER_OPERATOR_SECRET_${NETWORK.name.toUpperCase()}`;
     console.error(

@@ -138,10 +138,9 @@ jobs:
         run: |
           url="${{ vars.NEXT_PUBLIC_APP_URL }}"
           [ -n "$url" ] || { echo "::error::NEXT_PUBLIC_APP_URL var not set"; exit 1; }
-          # Both networks: the toggle serves both venues from this one
-          # deployment, and an unconfigured second database only fails on the
-          # routes that ask for it — which a mainnet-only check would miss.
-          for net in mainnet testnet; do
+          # Kryon serves testnet only. Kept as a loop so a network added back
+          # later is one word here.
+          for net in testnet; do
             body=$(curl -fsS -m 20 "$url/api/ready?network=$net") || {
               echo "::error::$net readiness request failed"; exit 1; }
             echo "$net → $body"

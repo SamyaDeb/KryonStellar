@@ -1,7 +1,8 @@
 # Kryon Protocol — Architecture
 
 **Kryon is a decentralised perpetual-futures exchange on Stellar/Soroban that
-settles every trade on mainnet against self-custodied collateral.** Traders sign
+settles every trade on-chain against self-custodied collateral.** It runs on
+Stellar testnet. Traders sign
 an order once with their own wallet; matching happens off-chain at exchange
 speed; custody, margin, funding, and liquidation are enforced entirely by
 Soroban contracts that the operator cannot bypass.
@@ -12,7 +13,7 @@ follows from it.
 
 | | |
 | --- | --- |
-| **Network** | Stellar mainnet (Soroban) |
+| **Network** | Stellar testnet (Soroban) |
 | **Collateral** | USDC (Circle SAC), self-custodied in the vault contract |
 | **Markets** | XLM-PERP (10x), BTC-PERP (50x), ETH-PERP (20x) |
 | **On-chain** | 8 Soroban contracts, `#![no_std]` Rust |
@@ -215,24 +216,23 @@ flowchart TB
 | `perp-insurance` | 208 | Bad-debt backstop fund |
 | `perp-risk` | 124 | Risk-parameter source consulted by the engine |
 
-**Deployed on Stellar mainnet.** Every address below is live on the public
-network, and its on-chain wasm hash matches the recorded build in
-`kryon-protocol/infra/deploy/mainnet-deployment.json`:
+**Deployed on Stellar testnet (v4).** Every address below is live on the test
+network and recorded in `kryon-protocol/infra/deploy/testnet-deployment-v4.json`:
 
 | Contract | Address |
 | --- | --- |
-| Engine | `CD6OMHCRDDBDO7I57HCUU52RORFPP7DUIRULWFBOX5WLCO5H2OB3W6LZ` |
-| Order Gateway | `CBA2PSRHSIFTSUAFZWMF6CARNO7YR52PWLWLEXYVRACORS2RXNO2DUTJ` |
-| Vault | `CDXGTJQS3XLGXSWDUHKMS5PBBFRRKRXRWH3HTBFNXBIAYEZNDTDKLR4J` |
-| Oracle Adapter | `CD3ZFYZPLJ6W2KO6HD7HE5P5Q27M5N6ITUPHQDRP23NBIVKE6WTUY25F` |
-| Liquidation | `CBGSXCZTZOSBMM5RLGZWWLE2USNAXL5ZKCHTZQ6DOKBD3PIEUJXFYDRO` |
-| Insurance | `CCBEJ3F2PUV5OA4JNX3CPSOJFQMYMFDPLNANR2GJZVQEEBFMB6JYNL54` |
-| Risk | `CBHZWEIKXULFIH6DCSS7W6BJ3YUVQ5TJFYPP4UKQC4NKLNAF7VLPNVUI` |
-| Governance | `CDSIEH7UZ62BT523G3RGJQGJHE7AI4EV265ESKZB672GTIEZNBYPYDXU` |
+| Engine | `CDUGOFF3GWFXPYWYH7B3WCS6W7WQX4YTO7HF3ZVI6JBWRJWBOQJPLVSZ` |
+| Order Gateway | `CCGDR2SWS7OMHT6T37YDWLHST5C4ZZI6K2N2WU6D47TXKCKCKLYF7SNB` |
+| Vault | `CCWDYVNAYWU3IWKC2KJJ5MFTPHUBXOZU5CKGEH5S4DAKGX3HUFHQDJGF` |
+| Oracle Adapter | `CDOAKTFECPGLX54H6ST3O3LT6476O27S67W26NYEOC7WDRY4GWCEZQZE` |
+| Liquidation | `CDJ2ASKLIXRMDM3SWKTLWW7GOXJYMHGZMO5GYCGOXLA6R3FFN5MGJZ7G` |
+| Insurance | `CDUQUDR3S7R6OIPNQ7SRHZEPTYZJPWPMXYKRMTXK3CLJYPEGWVPQXHV7` |
+| Risk | `CAR5JGY4DMZOWZYK27EBB5IWNOMIG5AD5CGYTZI2URFGB4ABUGRLC5MY` |
+| Governance | `CD5QPRFE6ND6UIJDDIR3Z2I4DNLN4TXT4CTFOIFCN7IY33YO424ZDNL5` |
 
-Settlement assets: USDC (Circle SAC)
-`CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75`, native XLM SAC
-`CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA`.
+Settlement asset: testnet USDC
+`CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`; native XLM SAC
+`CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`.
 
 Two design properties worth stating explicitly:
 
@@ -297,7 +297,7 @@ flowchart TB
         MON["kryon-monitor<br/>stale oracle · bad debt · failures"]
     end
     DB[("Neon Postgres")]
-    CH{{"Soroban · Stellar mainnet"}}
+    CH{{"Soroban · Stellar testnet"}}
 
     B --> OK
     CB --> OK
@@ -449,7 +449,7 @@ flowchart TB
         S7["monitor"]
     end
     NEON[("Neon serverless Postgres")]
-    RPC{{"Soroban RPC · Stellar mainnet"}}
+    RPC{{"Soroban RPC · Stellar testnet"}}
 
     U --> NX
     U --> DOC
@@ -466,7 +466,7 @@ flowchart TB
   committed.
 - **Database** — Neon serverless Postgres with connection caching and
   `withRetry` for transient errors.
-- **Chain** — Soroban RPC against Stellar mainnet.
+- **Chain** — Soroban RPC against Stellar testnet.
 
 ---
 

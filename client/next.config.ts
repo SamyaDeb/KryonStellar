@@ -14,8 +14,21 @@ const isDev = process.env.NODE_ENV !== "production";
  * set them would otherwise build a CSP that blocks its own feed, and silently
  * degrading to REST polling is a worse failure than a broad directive.
  */
+// An operator RPC override (NEXT_PUBLIC_STELLAR_RPC_URL, e.g. a paid testnet
+// RPC) must be reachable from the browser too, or every simulate call is
+// blocked by the CSP.
+const rpcOrigins = [process.env.NEXT_PUBLIC_STELLAR_RPC_URL, process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL]
+  .filter((u): u is string => Boolean(u))
+  .map((u) => {
+    try {
+      return new URL(u).origin + " ";
+    } catch {
+      return "";
+    }
+  })
+  .join("");
+
 const wsOrigins = [
-  process.env.NEXT_PUBLIC_WS_URL_MAINNET,
   process.env.NEXT_PUBLIC_WS_URL_TESTNET,
   process.env.NEXT_PUBLIC_WS_URL,
 ]
@@ -47,7 +60,7 @@ const csp = [
   // Both networks' RPC and Horizon endpoints are listed: the navbar toggle
   // serves both venues from one bundle, so a build for either must be able to
   // reach the other's chain endpoints after a switch.
-  `connect-src 'self' https://api.binance.com https://*.tradingview.com wss://*.tradingview.com https://soroban-testnet.stellar.org https://soroban-mainnet.stellar.org https://mainnet.sorobanrpc.com https://horizon-testnet.stellar.org https://horizon.stellar.org ${wsConnectSrc}${isDev ? " ws://localhost:8080 ws://localhost:8081" : ""}`,
+  `connect-src 'self' https://api.binance.com https://*.tradingview.com wss://*.tradingview.com https://soroban-testnet.stellar.org https://horizon-testnet.stellar.org ${rpcOrigins}${wsConnectSrc}${isDev ? " ws://localhost:8080 ws://localhost:8081" : ""}`,
   "worker-src 'self' blob:",
 ].join("; ");
 

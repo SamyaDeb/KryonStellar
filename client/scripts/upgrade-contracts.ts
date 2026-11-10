@@ -28,7 +28,7 @@
  *   ... --only=perp_engine   restrict to one contract (repeatable)
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import {
   Account,
@@ -63,6 +63,8 @@ const admin = Keypair.fromSecret(process.env.PROTOCOL_ADMIN_SECRET as string);
 
 interface DeploymentState {
   contracts: Record<string, string>;
+  /** Installed WASM hash per contract. ttl-keeper.ts extends these code entries. */
+  wasm?: Record<string, string>;
 }
 
 let simSeq = 100;
@@ -180,7 +182,15 @@ async function main(): Promise<void> {
   for (const { name, id, wasm } of plan) {
     const hash = await uploadWasm(wasm, name);
     const tx = await upgrade(id, hash, `${name}.upgrade`);
-    console.log(`  ${name.padEnd(20)} ${hash.toString("hex").slice(0, 16)}…  ${tx}`);
+    console.log(`  ${name.padEnd(20)} ${hash.toString("hex")}  ${tx}`);
+    if (EXECUTE) {
+      // Record each hash as soon as its upgrade confirms, so a crash part-way
+      // leaves the file matching the chain. ttl-keeper.ts reads these to keep
+      // the installed code entries alive; a stale hash there lets the new code
+      // archive while the keeper extends an entry nothing uses.
+      state.wasm = { ...(state.wasm ?? {}), [name]: hash.toString("hex") };
+      writeFileSync(statePath, JSON.stringify(state, null, 2) + "\n");
+    }
   }
 
   console.log(

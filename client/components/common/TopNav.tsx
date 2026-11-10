@@ -9,7 +9,7 @@ import { WalletConnect } from "@/features/wallet/components/WalletConnect";
 import { NotificationBell } from "@/features/navbar/components/NotificationBell";
 import { SettingsMenu } from "@/features/navbar/components/SettingsMenu";
 import { DEFAULT_MARKET_SYMBOL } from "@/config";
-import { NetworkToggle } from "@/features/network/components/NetworkToggle";
+import { NetworkBadge } from "@/features/network/components/NetworkBadge";
 import { NetworkBanner } from "@/features/network/components/NetworkBanner";
 
 const TABS = [
@@ -72,9 +72,9 @@ export function TopNav() {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-[12px]">
-          {/* Hidden on mobile, where it moves into the drawer — the segmented
-              control plus the wallet button does not fit a phone-width bar. */}
-          <NetworkToggle className="hidden sm:flex" />
+          {/* Hidden on mobile, where it moves into the drawer — the badge plus
+              the wallet button does not fit a phone-width bar. */}
+          <NetworkBadge className="hidden sm:flex" />
           <WalletConnect />
           <NotificationBell />
           <SettingsMenu />
@@ -93,7 +93,7 @@ export function TopNav() {
           <nav className="absolute inset-x-0 top-full z-50 border-b border-[#2A2A31] bg-[#212128] p-2 shadow-[0_20px_40px_rgba(0,0,0,.5)] md:hidden">
             <div className="mb-2 flex items-center justify-between gap-2 border-b border-[#2A2A31] px-2 pb-3 sm:hidden">
               <span className="text-[13px] font-medium text-[#a3a3a3]">Network</span>
-              <NetworkToggle />
+              <NetworkBadge />
             </div>
             {TABS.map((t) => {
               const active = pathname.startsWith(t.match);
