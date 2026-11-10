@@ -89,13 +89,14 @@ function codeKey(wasmHashHex: string): xdr.LedgerKey {
 }
 
 function loadWasmHashes(): Record<string, string> {
-  // Only mainnet has a checkpointed hash manifest today; testnet runs are
-  // rehearsal-only so a missing file there just means "skip code entries".
-  const jsonPath = path.join(
-    __dirname,
-    "../../kryon-protocol/infra/deploy/mainnet-deployment.json"
-  );
-  if (NETWORK.name !== "mainnet" || !fs.existsSync(jsonPath)) return {};
+  // The live deployment's checkpointed hash manifest. Overridable so a future
+  // redeploy does not need a code change; a missing file means "skip code
+  // entries". NOTE: after an in-place upgrade the on-chain WASM hashes change,
+  // so record the new ones in this file (upgrade-contracts.ts prints them).
+  const jsonPath =
+    process.env.DEPLOY_STATE_PATH ??
+    path.join(__dirname, "../../kryon-protocol/infra/deploy/testnet-deployment-v4.json");
+  if (!fs.existsSync(jsonPath)) return {};
   const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
   return data.wasm ?? {};
 }

@@ -146,8 +146,8 @@ funding history + equity curve in human units.
   book, trades, candles, fills, funding, portfolio and leaderboard routes
   return values already scaled to human units. See
   [Units and precision](/agents/units).
-- **Network selection** — every route honours `?network=mainnet|testnet`.
-  Programmatic clients should always send it explicitly; the fallback is a
-  cookie and then the deployment's primary network.
+- **Network selection** — routes accept `?network=testnet`, the only network
+  Kryon serves. Any other value (including the retired `mainnet`) falls back
+  to testnet.
 - **No CORS headers** — server-side clients only; a browser on another origin
   is blocked.

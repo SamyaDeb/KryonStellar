@@ -108,10 +108,8 @@ async function main() {
   console.log(`Network    : ${NETWORK.name}`);
   console.log(`Admin key  : ${kp.publicKey()}`);
   console.log(`Governance : ${governance}`);
-  if (NETWORK.name === "mainnet") {
-    console.log("\n*** MAINNET CEREMONY — verify the governance address and its admin/guardian before continuing. Ctrl-C now if unsure. ***\n");
-    await new Promise((r) => setTimeout(r, 10_000));
-  }
+  console.log("\n*** ADMIN CEREMONY — verify the governance address and its admin/guardian before continuing. Ctrl-C now if unsure. ***\n");
+  await new Promise((r) => setTimeout(r, 10_000));
 
   if (phase === "nominate") {
     for (const [name, contractId] of TARGETS) {

@@ -6,6 +6,13 @@ sidebar_position: 93
 
 # Mainnet Readiness
 
+:::note Historical
+Kryon runs on Stellar testnet only. The trial mainnet deployment this page
+prepared for went live on 2026-07-07 and was retired on 2026-11-11, because its
+contracts predate `upgrade()` and could not be patched. The gaps below still
+apply to any future real-money launch.
+:::
+
 An honest gap analysis. The protocol is **functionally complete and stable on
 testnet** — trading, settlement, PnL, leaderboard, and portfolio all work
 end-to-end against live contracts. This page lists what remains before a

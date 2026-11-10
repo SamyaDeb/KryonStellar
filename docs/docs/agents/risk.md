@@ -74,7 +74,8 @@ halted.
 A crossed book (bid above ask) or a locked one (bid equal to ask) means resting
 orders that should have matched and did not — because their owner cannot settle,
 or because settlement itself is broken. It looks like free money and is not.
-Both Kryon venues have shown this; see [Going to mainnet](./mainnet).
+Kryon's book has shown this before: in September 2026 the (since retired)
+mainnet XLM-PERP book was crossed by about 11%.
 
 ## Stale oracles
 

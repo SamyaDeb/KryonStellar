@@ -7,24 +7,14 @@
 // have to change.
 //
 // ── How the active network is chosen ─────────────────────────────────────────
-// In the browser this is evaluated once per page load, from `?network=` or the
-// `kryon_network` cookie (see lib/network-resolve.ts). Switching networks in the
-// navbar performs a full reload, which re-evaluates this module — that is what
-// makes a static const safe here, and it is deliberate: a full reload is the
-// only way to guarantee no mainnet state survives into a testnet view. The
-// memoised RPC client, the WebSocket connection, in-flight polls, and every
-// component's cached balances/positions are all process-local singletons; an
-// in-place swap would have to invalidate each one, and missing a single one
-// means showing mainnet balances against testnet contracts.
+// Kryon runs on testnet only, so this always resolves to testnet. The cookie /
+// `?network=` plumbing in lib/network-resolve.ts is kept so that a stale
+// `kryon_network=mainnet` cookie from the old two-network build coerces to
+// testnet instead of erroring, and so a network can be added back as data.
 //
-// On the SERVER these consts resolve to the deployment's primary network and
-// are therefore NOT per-request. Server code that must honour the caller's
-// choice (API routes) resolves it explicitly with `getNetworkConfig(...)` and
-// the helpers in `lib/network-server.ts`.
-//
-// Keeper scripts under `scripts/` run one network per process and get their
-// network from `NEXT_PUBLIC_STELLAR_NETWORK` in their env file, exactly as
-// before.
+// Keeper scripts under `scripts/` get their network from
+// `NEXT_PUBLIC_STELLAR_NETWORK`; anything other than `testnet` is refused at
+// import time (config/networks.ts).
 
 import {
   getNetworkConfig,
@@ -278,20 +268,12 @@ function parseActiveMarketSymbols(raw: string | undefined): string[] {
   return unique;
 }
 
-// `NEXT_PUBLIC_ACTIVE_MARKETS` is legacy and, like the OVERRIDES in
-// networks.ts, only applies to the deployment's PRIMARY network — it was never
-// network-scoped, so pinning it (e.g. to a single market during a phased
-// mainnet rollout) silently capped BOTH sides of the navbar toggle at once.
-// The secondary network now defaults to every known market instead, and can
-// be pinned independently with `NEXT_PUBLIC_ACTIVE_MARKETS_MAINNET` /
-// `NEXT_PUBLIC_ACTIVE_MARKETS_TESTNET`.
+// `NEXT_PUBLIC_ACTIVE_MARKETS_TESTNET` is the older, network-scoped spelling
+// from when the app also served mainnet; it is still honoured so existing env
+// files keep working.
 const ACTIVE_MARKETS_ENV_BY_NETWORK: Record<NetworkId, string | undefined> = {
-  mainnet:
-    process.env.NEXT_PUBLIC_ACTIVE_MARKETS_MAINNET ??
-    (PRIMARY_NETWORK === "mainnet" ? process.env.NEXT_PUBLIC_ACTIVE_MARKETS : undefined),
   testnet:
-    process.env.NEXT_PUBLIC_ACTIVE_MARKETS_TESTNET ??
-    (PRIMARY_NETWORK === "testnet" ? process.env.NEXT_PUBLIC_ACTIVE_MARKETS : undefined),
+    process.env.NEXT_PUBLIC_ACTIVE_MARKETS_TESTNET ?? process.env.NEXT_PUBLIC_ACTIVE_MARKETS,
 };
 
 export const ACTIVE_MARKET_SYMBOLS = parseActiveMarketSymbols(
@@ -348,26 +330,13 @@ export const BPS_PRECISION = 10000;
 
 // ─── Off-chain service endpoints ─────────────────────────────────────────────
 // The matcher and indexer are reached through this app's own /api routes, so
-// they need no per-network URL — the route resolves the caller's network and
-// picks the matching database.
+// they need no URL of their own.
 //
-// The WebSocket server is a separate process per network (one ws-server can
-// only tail one database), so it DOES need a per-network address. The testnet
-// var is optional: unset simply means the UI falls back to REST polling for
-// testnet, which is the same graceful degradation mainnet already had.
-
-// The legacy single-network `NEXT_PUBLIC_WS_URL` belongs to whichever network
-// the deployment was built for — inheriting it into the other one would point
-// the testnet UI at the mainnet feed (or vice versa).
-const LEGACY_WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "";
-
+// The WebSocket server is a separate process (it tails the database), so it
+// needs its own address. Unset means the UI falls back to REST polling.
+// `NEXT_PUBLIC_WS_URL_TESTNET` is the older spelling and wins when both are set.
 const WS_URL_BY_NETWORK: Record<NetworkId, string> = {
-  mainnet:
-    process.env.NEXT_PUBLIC_WS_URL_MAINNET ??
-    (PRIMARY_NETWORK === "mainnet" ? LEGACY_WS_URL : ""),
-  testnet:
-    process.env.NEXT_PUBLIC_WS_URL_TESTNET ??
-    (PRIMARY_NETWORK === "testnet" ? LEGACY_WS_URL : ""),
+  testnet: process.env.NEXT_PUBLIC_WS_URL_TESTNET || process.env.NEXT_PUBLIC_WS_URL || "",
 };
 
 export function getWsUrl(network: NetworkId): string {

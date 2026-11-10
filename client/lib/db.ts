@@ -5,44 +5,25 @@ import { PRIMARY_NETWORK, type NetworkId } from "@/config/networks";
 // The DATABASE_URL_* vars are private (no NEXT_PUBLIC_ prefix).
 
 /**
- * Each network has its own physical database (`kryon_mainnet`,
- * `kryon_testnet`), so routing a request to the right venue means routing it to
- * the right connection string.
+ * The testnet database (`kryon_testnet`).
  *
- * `DATABASE_URL` (unsuffixed) is the legacy single-network var and is treated
- * as belonging to the deployment's PRIMARY network. A deployment that has only
- * ever set `DATABASE_URL` therefore keeps working unchanged.
+ * `DATABASE_URL_TESTNET` wins when set; `DATABASE_URL` is the plain spelling.
+ * The suffixed name is left over from when the app also served mainnet and is
+ * still honoured so existing env files keep working.
  */
 function urlForNetwork(network: NetworkId): string {
-  const explicit =
-    network === "mainnet"
-      ? process.env.DATABASE_URL_MAINNET
-      : process.env.DATABASE_URL_TESTNET;
-  if (explicit) return explicit;
-
-  const legacy = process.env.DATABASE_URL;
-  if (legacy && network === PRIMARY_NETWORK) return legacy;
-
-  // Deliberately NOT falling back to the other network's database. Serving
-  // mainnet rows to a caller who asked for testnet — positions, fills,
-  // balances — would be worse than an outage: the UI would present real
-  // money as play money against testnet contract addresses. Fail loudly.
-  const varName = network === "mainnet" ? "DATABASE_URL_MAINNET" : "DATABASE_URL_TESTNET";
+  const url = process.env.DATABASE_URL_TESTNET || process.env.DATABASE_URL;
+  if (url) return url;
   throw new Error(
-    `No database configured for network "${network}". Set ${varName} ` +
-      `(or DATABASE_URL if ${network} is this deployment's primary network).`
+    `No database configured for network "${network}". Set DATABASE_URL (or DATABASE_URL_TESTNET).`
   );
 }
 
-// One client per network, created lazily so an unconfigured secondary network
-// only throws for requests that actually ask for it.
+// Created lazily so a build or script that never touches the database does not
+// need a connection string.
 const clients = new Map<NetworkId, SqlClient>();
 
-/**
- * Get the SQL client for a network. Defaults to the deployment's primary
- * network so existing `db()` call sites keep their previous behaviour; request
- * handlers should pass the network from `networkFromRequest(req)`.
- */
+/** Get the SQL client for a network (always testnet today). */
 function getDb(network: NetworkId = PRIMARY_NETWORK): SqlClient {
   const cached = clients.get(network);
   if (cached) return cached;

@@ -5,8 +5,8 @@ name: production-validation
 on:
   workflow_dispatch:
     inputs:
-      confirm_mainnet:
-        description: Type mainnet to validate production
+      confirm:
+        description: Type production to validate the live deployment
         required: true
         type: string
       soak_seconds:
@@ -35,7 +35,7 @@ concurrency:
 jobs:
   validate:
     name: live production validation
-    if: ${{ inputs.confirm_mainnet == 'mainnet' }}
+    if: ${{ inputs.confirm == 'production' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Scope live-validation vars/secrets to the protected production environment.

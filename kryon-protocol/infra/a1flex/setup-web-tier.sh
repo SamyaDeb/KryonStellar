@@ -33,22 +33,23 @@ log "Preflight: database configuration"
 ENV_FILE="${CLIENT_DIR}/.env.local"
 [[ -f "$ENV_FILE" ]] || die "Missing ${ENV_FILE}"
 
-for var in DATABASE_URL_MAINNET DATABASE_URL_TESTNET; do
-  if grep -qE "^${var}=." "$ENV_FILE"; then
-    ok "${var} set"
-  else
-    die "${var} is not set in ${ENV_FILE}.
-      The network toggle serves both venues from this one deployment, and
-      lib/db.ts deliberately refuses to fall back to the other network's
-      database — serving mainnet positions to a testnet caller would present
-      real money as play money. Set both, pointing at localhost:5432."
+if grep -qE "^(DATABASE_URL|DATABASE_URL_TESTNET)=." "$ENV_FILE"; then
+  ok "testnet database configured"
+else
+  die "Neither DATABASE_URL nor DATABASE_URL_TESTNET is set in ${ENV_FILE}.
+      Point it at the testnet database (kryon_testnet on localhost:5432)."
+fi
+# A leftover mainnet setting now fails the build (config/networks.ts refuses any
+# network but testnet) — catch it here with a clearer message.
+for f in "$ENV_FILE" "${CLIENT_DIR}/.env.production.local"; do
+  [[ -f "$f" ]] || continue
+  if grep -qE "^NEXT_PUBLIC_STELLAR_NETWORK=\"?mainnet" "$f"; then
+    die "${f} still sets NEXT_PUBLIC_STELLAR_NETWORK=mainnet. Kryon runs on testnet only:
+      set it to testnet and delete the NEXT_PUBLIC_CONTRACT_*, NEXT_PUBLIC_ASSET_*,
+      NEXT_PUBLIC_USDC_ISSUER and NEXT_PUBLIC_STELLAR_{RPC_URL,PASSPHRASE,HORIZON_URL}
+      lines so the baked testnet v4 defaults apply."
   fi
 done
-
-# rateLimit() FAILS CLOSED in production: with no Upstash credentials it denies
-# every request to /api/orders, /cancel, /settlements, /fills, /funding and
-# /portfolio. /api/ready does not rate-limit, so the site would come up green
-# and then reject every order — a confusing way to fail Phase 9.
 for var in UPSTASH_REDIS_REST_URL UPSTASH_REDIS_REST_TOKEN; do
   grep -qE "^${var}=." "$ENV_FILE" \
     || die "${var} is not set in ${ENV_FILE}.
@@ -59,10 +60,8 @@ for var in UPSTASH_REDIS_REST_URL UPSTASH_REDIS_REST_TOKEN; do
 done
 ok "Upstash rate-limit credentials present"
 
-for var in NEXT_PUBLIC_MAINNET_KEEPERS_LIVE NEXT_PUBLIC_TESTNET_KEEPERS_LIVE; do
-  grep -qE "^${var}=." "$ENV_FILE" \
-    || warn "${var} unset — the degraded-venue banner falls back to \"only the primary network is live\", which mislabels the other venue in whichever direction is wrong."
-done
+grep -qE "^NEXT_PUBLIC_TESTNET_KEEPERS_LIVE=." "$ENV_FILE" \
+  || warn "NEXT_PUBLIC_TESTNET_KEEPERS_LIVE unset — the UI assumes keepers are running. Set it to false while the fleet is down so traders see the paused banner."
 
 # ── 2. Build ─────────────────────────────────────────────────────────────────
 # Built on the box, not shipped: NEXT_PUBLIC_* values are inlined into the
@@ -73,6 +72,12 @@ if [[ -z "${TUNNEL_ONLY:-}" ]]; then
   cd "$CLIENT_DIR"
 
   npm ci --no-audit --fund=false
+  # Runtime readiness gate against THIS box's env: app/WS URLs, database,
+  # settlement key, Redis. CI cannot run these checks (it has no secrets).
+  GATE_ENV=(--env-file=.env.local)
+  [[ -f .env.production.local ]] && GATE_ENV+=(--env-file=.env.production.local)
+  npx tsx "${GATE_ENV[@]}" scripts/production-gate.ts --runtime \
+    || die "production gate failed — fix the env above; previous bundle left in place"
   # Docs are a static Docusaurus export served from public/docs by a rewrite in
   # next.config.ts; without this step /docs/* 404s on the live site.
   if [[ -d "${REPO_DIR}/docs" ]]; then

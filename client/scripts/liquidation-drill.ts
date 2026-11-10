@@ -59,11 +59,11 @@ assertRequiredSecrets([
 ]);
 assertNoPublicSecretLeak();
 
-if (NETWORK.name === "mainnet") {
-  console.error(
-    "liquidation-drill refuses to run on mainnet: it destroys an account's " +
-      "collateral and moves the oracle. Run it on testnet."
-  );
+// config/networks.ts refuses any network other than testnet, so this drill —
+// which destroys an account's collateral and moves the oracle — cannot reach
+// mainnet. Re-check the passphrase anyway; it costs nothing.
+if (NETWORK.passphrase !== "Test SDF Network ; September 2015") {
+  console.error("liquidation-drill only runs on testnet.");
   process.exit(1);
 }
 

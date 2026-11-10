@@ -42,7 +42,6 @@ const sidebars: SidebarsConfig = {
         "agents/lifecycle",
         "agents/risk",
         "agents/funding",
-        "agents/mainnet",
       ],
     },
     {

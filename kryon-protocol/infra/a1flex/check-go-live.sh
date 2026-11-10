@@ -65,7 +65,7 @@ else
     pass "shape: $arch (want aarch64, ~23-24 GB)"
     online=$(ssh -i "$KEY" -o BatchMode=yes "opc@$VM" 'pm2 jlist 2>/dev/null | python3 -c "import sys,json;print(sum(1 for p in json.load(sys.stdin) if p[\"pm2_env\"][\"status\"]==\"online\"))"' 2>/dev/null)
     [[ "${online:-0}" -ge 7 ]] && pass "pm2: ${online} processes online" \
-                               || fail "pm2: ${online:-0} online (want 7 mainnet, 14 with testnet)"
+                               || fail "pm2: ${online:-0} online (want the testnet fleet: oracle, matcher, indexer, ws, liquidator, funding, reconciler, monitor)"
     ssh -i "$KEY" -o BatchMode=yes "opc@$VM" 'systemctl is-active --quiet cloudflared' 2>/dev/null \
       && pass "cloudflared running" || fail "cloudflared not running (Phase 7-8)"
   else
@@ -94,7 +94,7 @@ done
 
 # ── Phase 8/9: the public site ───────────────────────────────────────────────
 head_ "Phase 8-9 · public site"
-for net in mainnet testnet; do
+for net in testnet; do
   body=$(curl -fsSL -m 20 "https://${DOMAIN}/api/ready?network=${net}" 2>/dev/null)
   case "${body:-}" in
     *'"ok":true'*) pass "https://${DOMAIN}/api/ready?network=${net} → ok" ;;

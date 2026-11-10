@@ -185,4 +185,3 @@ orders on a real venue with nothing watching them.
 - [Signing](./signing) — the exact bytes, if you are not using the SDK
 - [Units and precision](./units) — 1e18 vs 1e7, and where the API is inconsistent
 - [Risk and limits](./risk) — margin, liquidation, rate limits
-- [Going to mainnet](./mainnet)

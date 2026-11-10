@@ -2,6 +2,11 @@
 import { StrKey } from "@stellar/stellar-sdk";
 import { ACTIVE_MARKET_SYMBOLS, ACTIVE_MARKETS, ASSETS, CONTRACTS, DEFAULT_MARKET_SYMBOL, NETWORK, WS_URL } from "../config";
 
+/** `--runtime`: also check the web tier's live env (URLs, DB, settlement key, Redis). */
+const RUNTIME = process.argv.includes("--runtime");
+/** `--keepers`: also check the keeper fleet's env. */
+const KEEPERS = process.argv.includes("--keepers");
+
 function fail(message: string): never {
   throw new Error(`production gate failed: ${message}`);
 }
@@ -72,26 +77,35 @@ function main() {
   assertPublicKey("ASSETS.usdcIssuer", ASSETS.usdcIssuer);
 
   if (!NETWORK.rpcUrl.startsWith("https://")) fail("NETWORK.rpcUrl must be HTTPS");
-  if (NETWORK.name === "mainnet" && !NETWORK.passphrase.includes("Public Global Stellar Network")) {
-    fail("mainnet passphrase mismatch");
+  if (NETWORK.passphrase !== "Test SDF Network ; September 2015") {
+    fail("passphrase is not the Stellar testnet passphrase");
   }
 
-  if (NETWORK.name === "mainnet") {
+  // Runtime checks need the deployment's real env (URLs and secrets), which CI
+  // does not have. These used to run only when the network was mainnet, so
+  // once testnet became the live venue they silently stopped running at all.
+  // Now they are opt-in by flag and run on the box that serves traffic
+  // (kryon-protocol/infra/a1flex/setup-web-tier.sh).
+  if (RUNTIME) {
     assertHttpsUrl("NEXT_PUBLIC_APP_URL", process.env.NEXT_PUBLIC_APP_URL ?? "");
     assertWssUrl("NEXT_PUBLIC_WS_URL", WS_URL);
 
-    if (!process.env.DATABASE_URL) fail("DATABASE_URL is required for mainnet API routes");
-    if (!process.env.MATCHER_OPERATOR_SECRET) fail("MATCHER_OPERATOR_SECRET is required for mainnet settlement signing");
+    if (!process.env.DATABASE_URL && !process.env.DATABASE_URL_TESTNET) {
+      fail("DATABASE_URL is required for API routes");
+    }
+    if (!process.env.MATCHER_OPERATOR_SECRET && !process.env.MATCHER_OPERATOR_SECRET_TESTNET) {
+      fail("MATCHER_OPERATOR_SECRET is required for settlement signing");
+    }
     if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-      fail("distributed rate limit Redis is required for mainnet");
+      fail("distributed rate limit Redis is required");
     }
-    // A perpetual has no expiry, so funding is the only mechanism tethering the
-    // mark to the index. Without this keeper the rate never accrues and the
-    // market silently stops being a perp — which is exactly what happened, and
-    // went unnoticed for the life of the protocol, because nothing checked.
-    if (!process.env.FUNDING_KEEPER_SECRET) {
-      fail("FUNDING_KEEPER_SECRET is required for mainnet — funding does not accrue without the keeper");
-    }
+  }
+
+  // A perpetual has no expiry, so funding is the only mechanism tethering the
+  // mark to the index. Without this keeper the rate never accrues and the
+  // market silently stops being a perp. Checked where the keepers run.
+  if (KEEPERS && !process.env.FUNDING_KEEPER_SECRET) {
+    fail("FUNDING_KEEPER_SECRET is required — funding does not accrue without the keeper");
   }
 
   console.log(`production gate passed: ${ACTIVE_MARKET_SYMBOLS.join(", ")} on ${NETWORK.name}`);

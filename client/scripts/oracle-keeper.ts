@@ -441,14 +441,12 @@ async function run() {
         }
         price = agg.price;
         confidence = agg.confidence;
-      } else if (NETWORK.name !== "mainnet") {
-        // Testnet-only convenience: stablecoin sources unreachable — publish
-        // the peg so local development is not blocked. NEVER on mainnet.
+      } else {
+        // Testnet convenience: stablecoin sources unreachable — publish the
+        // peg so the venue is not blocked. Testnet USDC and the USDT0 mock are
+        // not real dollars; a real-money venue must skip the publish instead.
         price = PRICE_PRECISION;
         confidence = PRICE_PRECISION / 1000n;
-      } else {
-        console.error(`\n  ✗ ${oracleSymbol}: sources unavailable on mainnet — skipping publish (fail-safe)`);
-        return;
       }
 
       if (DRY_RUN) {

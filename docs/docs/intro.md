@@ -27,7 +27,7 @@ written for engineers building on, operating, or auditing the protocol.
 | [APIs](/api/rest) | REST endpoints and the streaming/WebSocket contract |
 | [Operations](/operations/local-dev) | Local dev, environment setup, onboarding, deployment |
 | [Security](/security) & [Scaling](/scaling) | Threat model, trust assumptions, scaling strategy |
-| [Mainnet Readiness](/mainnet-readiness) | Honest gap analysis for mainnet launch |
+| [Mainnet Readiness](/mainnet-readiness) | Historical gap analysis from the retired mainnet trial |
 
 ## Design at a glance
 
@@ -66,6 +66,7 @@ written for engineers building on, operating, or auditing the protocol.
 
 ## Network
 
-The reference deployment targets **Stellar testnet**. Live contract addresses
-are listed in [Soroban Contracts](/architecture/contracts). Mainnet launch
-prerequisites are tracked in [Mainnet Readiness](/mainnet-readiness).
+Kryon runs on **Stellar testnet** only. Live contract addresses are listed in
+[Soroban Contracts](/architecture/contracts). A trial mainnet deployment was
+retired on 2026-11-11; [Mainnet Readiness](/mainnet-readiness) is kept as a
+record of that effort.

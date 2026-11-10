@@ -20,20 +20,18 @@
 
 import { nativeToScVal, scValToNative, xdr } from "@stellar/stellar-sdk";
 import { simulateRead } from "./simulate";
-import { NETWORK, PRICE_PRECISION } from "@/config";
+import { PRICE_PRECISION } from "@/config";
 
 // Reflector quotes at 1e14; Kryon's internal precision is 1e18.
 const REFLECTOR_DECIMALS = 14n;
 const REFLECTOR_SCALE = PRICE_PRECISION / 10n ** REFLECTOR_DECIMALS; // 1e4
 
-export const REFLECTOR_CONTRACT_MAINNET = "CAFJZQWSED6YAWZU3GWRTOCNPPCGBN32L7QV43XX5LZLFTK6JLN34DLN";
 export const REFLECTOR_CONTRACT_TESTNET = "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
 
-/** Explicit override wins; otherwise pick by the configured Stellar network. */
+/** Explicit override wins; otherwise the testnet Reflector contract. */
 export function reflectorContractId(): string {
   return (
-    process.env.REFLECTOR_CONTRACT_ID ||
-    (NETWORK.name === "mainnet" ? REFLECTOR_CONTRACT_MAINNET : REFLECTOR_CONTRACT_TESTNET)
+    process.env.REFLECTOR_CONTRACT_ID || REFLECTOR_CONTRACT_TESTNET
   );
 }
 
