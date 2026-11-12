@@ -305,3 +305,7 @@ Kryon runs on **Stellar testnet** against the v4 contract set. A trial mainnet d
 Built on <a href="https://stellar.org">Stellar</a> · Powered by <a href="https://soroban.stellar.org">Soroban</a>
 
 </div>
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE) or [MIT license](LICENSE-MIT), at your option.

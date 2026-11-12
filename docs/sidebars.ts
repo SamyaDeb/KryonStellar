@@ -33,7 +33,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: "category",
-      label: "Build an Agent",
+      label: "Build a Trading Bot",
       collapsed: false,
       items: [
         "agents/quickstart",
