@@ -1,5 +1,7 @@
 # Legacy Issues Addressed In This Rebuild Tranche
 
+> **Historical record.** This document describes defects in the pre-rebuild implementation and how the rebuild addressed them. It is not a description of current behaviour; for that, see the [documentation site](../../docs/docs/index.md). Where it differs from the current code — for example, funding is now based on a time-weighted mark-versus-index premium rather than open-interest imbalance — the code and the documentation site are authoritative.
+
 ## 1. Withdrawal Solvency
 
 Risk: Critical.

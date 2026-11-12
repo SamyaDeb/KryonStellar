@@ -1,10 +1,12 @@
 # Kryon Protocol
 
 The Rust workspace behind Kryon: eight Soroban contracts and the pure crates
-they share. Live on Stellar mainnet since 2026-07-07.
+they share. Deployed on Stellar testnet (v4); a trial mainnet deployment from
+2026-07-07 was retired from the product on 2026-11-11. Contract references are
+in the [documentation](../docs/docs/03-smart-contracts/overview.md).
 
-Everything off-chain — matcher, oracle keeper, indexer, WebSocket server,
-reconciler, liquidation and TTL keepers — is TypeScript under `client/scripts/`
+Everything off-chain (matcher, oracle keeper, indexer, WebSocket server,
+reconciler, liquidation and TTL keepers) is TypeScript under `client/scripts/`
 and supervised by PM2. This tree is on-chain logic only.
 
 ## Workspace
@@ -32,9 +34,9 @@ prisma/
   schema.prisma    Postgres persistence schema for the off-chain runtime state
 
 docs/
-  architecture.md
-  security-model.md
-  legacy-issues-fixed.md
+  legacy-issues-fixed.md      Historical record of pre-rebuild defects
+  multi-collateral-runbook.md USDT0 listing runbook
+  architecture.md, security-model.md  Superseded; point to docs/docs
 ```
 
 `protocol-core` and `risk-engine` are `#![no_std]` and dependency-light on
@@ -52,7 +54,7 @@ are a thin authorization and storage layer over them.
 
 ## Markets
 
-`XLM-PERP` was the launch market, quoted and settled in `USDC` — a perpetual
+`XLM-PERP` was the launch market, quoted and settled in `USDC`: a perpetual
 futures market for XLM/USDC exposure, not a spot pair. Seven further markets
 (BTC, ETH, SOL, XRP, ADA, BNB, TRX) are configured; `NEXT_PUBLIC_ACTIVE_MARKETS`
 decides which are live on a given deployment.
@@ -67,7 +69,7 @@ cargo build --workspace --release --locked   # wasm32v1-none for deployment
 ```
 
 The toolchain is pinned in `rust-toolchain.toml` and must match the version CI
-installs. Release builds are `opt-level = "z"` with LTO and stripped symbols —
+installs. Release builds are `opt-level = "z"` with LTO and stripped symbols:
 Soroban charges for bytecode size and rent, so the wasm is optimized further by
 `infra/deploy/optimize-wasm.py` before upload.
 
@@ -77,5 +79,5 @@ Soroban charges for bytecode size and rent, so the wasm is optimized further by
 the recorded live deployments (`mainnet-deployment.json`,
 `testnet-deployment-*.json`), and the runbooks for governance admin transfer,
 rollback, incidents, and stuck settlement. Contract addresses that the frontend
-and keepers read come from `client/config/networks.ts` — change those together
+and keepers read come from `client/config/networks.ts`. Change those together
 with the keeper environment, never one side alone.

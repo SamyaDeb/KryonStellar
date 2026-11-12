@@ -55,7 +55,7 @@ const config: Config = {
       logo: { alt: "Kryon", src: "img/logo.png", width: 44, height: 44, href: "/", target: "_self" },
       items: [
         { type: "docSidebar", sidebarId: "docs", position: "left", label: "Documentation" },
-        { href: "https://github.com/SamyaDeb/KryonV2", label: "GitHub", position: "right" },
+        { href: "https://github.com/SamyaDeb/KryonStellar", label: "GitHub", position: "right" },
       ],
     },
     footer: {
@@ -64,25 +64,25 @@ const config: Config = {
         {
           title: "Protocol",
           items: [
-            { label: "Architecture", to: "/architecture/protocol" },
-            { label: "Soroban Contracts", to: "/architecture/contracts" },
-            { label: "Trading Lifecycle", to: "/trading/lifecycle" },
+            { label: "System architecture", to: "/architecture/system-architecture" },
+            { label: "Smart contracts", to: "/smart-contracts/overview" },
+            { label: "Trading mechanics", to: "/trading-mechanics/order-lifecycle" },
           ],
         },
         {
           title: "Build",
           items: [
-            { label: "Local Development", to: "/operations/local-dev" },
-            { label: "REST API", to: "/api/rest" },
-            { label: "WebSocket Events", to: "/api/websocket" },
+            { label: "Local development", to: "/developer-guides/local-development" },
+            { label: "REST API", to: "/api-reference/rest-api" },
+            { label: "WebSocket API", to: "/api-reference/websocket-api" },
           ],
         },
         {
           title: "Operate",
           items: [
             { label: "Deployment", to: "/operations/deployment" },
-            { label: "Security", to: "/security" },
-            { label: "Mainnet Readiness", to: "/mainnet-readiness" },
+            { label: "Security model", to: "/security/threat-model" },
+            { label: "Access control", to: "/security/access-control" },
           ],
         },
       ],

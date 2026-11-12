@@ -1,0 +1,42 @@
+---
+title: Deployments
+sidebar_position: 12
+---
+
+# Deployments
+
+Kryon is deployed on Stellar testnet. Passphrase `Test SDF Network ; September 2015`, RPC `https://soroban-testnet.stellar.org`.
+
+## Contracts
+
+| Contract | Address |
+| --- | --- |
+| Governance | `CD5QPRFE6ND6UIJDDIR3Z2I4DNLN4TXT4CTFOIFCN7IY33YO424ZDNL5` |
+| Oracle adapter | `CDOAKTFECPGLX54H6ST3O3LT6476O27S67W26NYEOC7WDRY4GWCEZQZE` |
+| Vault | `CCWDYVNAYWU3IWKC2KJJ5MFTPHUBXOZU5CKGEH5S4DAKGX3HUFHQDJGF` |
+| Engine | `CDUGOFF3GWFXPYWYH7B3WCS6W7WQX4YTO7HF3ZVI6JBWRJWBOQJPLVSZ` |
+| Order gateway | `CCGDR2SWS7OMHT6T37YDWLHST5C4ZZI6K2N2WU6D47TXKCKCKLYF7SNB` |
+| Insurance | `CDUQUDR3S7R6OIPNQ7SRHZEPTYZJPWPMXYKRMTXK3CLJYPEGWVPQXHV7` |
+| Liquidation | `CDJ2ASKLIXRMDM3SWKTLWW7GOXJYMHGZMO5GYCGOXLA6R3FFN5MGJZ7G` |
+| Risk | `CAR5JGY4DMZOWZYK27EBB5IWNOMIG5AD5CGYTZI2URFGB4ABUGRLC5MY` |
+
+## Assets
+
+| Asset | Contract | Role |
+| --- | --- | --- |
+| USDC | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` | Settlement, 0 bps haircut |
+| USDT0 | `CCXWM7LWNT4VDRUJ4KZILV6KB7SXWDWDBF5TT65E5IRDEX7QZTDMNLRO` | Margin only, 500 bps haircut |
+
+USDC issuer: `GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5`.
+
+## Operational accounts
+
+| Role | Address |
+| --- | --- |
+| Admin | `GAPMSIT3SPNR7D2B3LXS6QWM5MC7BKUMTZHO2PAV7UFZF4F2QZ3MQUMN` |
+| Guardian | `GBQFGV2C6K2TAVJTGWKNN73ZCR64VKGUQCP4XOF7MILFASGFM2FGHHHM` |
+| Oracle publisher | `GA3SSO6D4YL5W6NDCO5V72BN5PHXC3SOBRAFMDSMUOM7OTXY2S6UAUHF` |
+| Matcher operator | `GC3JI2IC7ROSBFL5GVAIWKMBHV4E6ZUZKHC6N4R37NO4VK3UJTYRK63O` |
+| Liquidator | `GD7Y6ZHZOVQBLEN64WQUOUDDN2FXXWPHSVRCE4U2L4PKNNTQGRHSWGXY` |
+
+Every contract supports `upgrade()`, so these addresses stay fixed across releases. The full record, including WASM hashes, is in `kryon-protocol/infra/deploy/testnet-deployment-v4.json`, and the client reads its addresses from `client/config/networks.ts`.
