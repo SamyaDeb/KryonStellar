@@ -7,7 +7,7 @@
 
 **A decentralised perpetual-futures exchange on Stellar / Soroban.**
 
-Off-chain CLOB matching for low-latency execution — custody, margin, funding, and settlement fully on-chain.
+Off-chain CLOB matching with per-fill on-chain settlement, custody, margin checks and position accounting are enforced by Soroban contracts.
 
 [Live App](https://kryonprotocol.vercel.app) · [Documentation](https://kryonprotocol.vercel.app/docs) · [Architecture](#architecture) · [Quick Start](#quick-start)
 
@@ -27,34 +27,15 @@ Kryon is a perpetual-futures DEX that pairs an **on-chain margin engine and sett
 - **Launch market:** `XLM-PERP`, quoted and settled in **USDC** (BTC-PERP and ETH-PERP market configs are ready to enable)
 - **Leverage:** up to 10× with 1000bps initial margin on the launch market
 - **Custody:** collateral never leaves the on-chain vault; the matcher can only settle orders traders have signed
-- **Network:** Stellar **testnet** (test funds only). A trial mainnet deployment ran from 2026-07-07 and was retired on 2026-11-11 — see [Status](#status--roadmap)
+- **Network:** Stellar **testnet** (test funds only). A trial mainnet deployment ran from 2026-07-07 and was retired on 2026-11-11: see [Status](#status--roadmap)
 
 Traders sign order intents with [Freighter](https://freighter.app), the matcher pairs them price-time priority, and every fill is settled on-chain through the order gateway into a single volume-weighted position per (trader, market).
 
 ## Architecture
 
-```
-                        ┌─────────────────────────┐
-   Trader (Freighter)   │      Next.js frontend    │
-        │               │  trade · portfolio · LB  │
-        │  sign orders  └───────────┬─────────────┘
-        ▼                           │ REST (same-origin /api/*)
-┌──────────────────┐                ▼
-│  Order intents   │      ┌───────────────────────┐
-│  (off-chain DB)  │◀────▶│   Next.js API routes   │──▶ Neon Postgres
-└────────┬─────────┘      └───────────────────────┘
-         │ poll
-         ▼
-┌──────────────────┐   settle_fill (operator-signed)   ┌──────────────────┐
-│  Matcher service │ ────────────────────────────────▶ │  Soroban engine  │
-│  (price-time)    │                                    │  vault · oracle  │
-└──────────────────┘                                    └──────────────────┘
-         ▲                                                       │
-         │ state sync (positions, OI, funding, stats)            │
-┌──────────────────┐                                             │
-│  State indexer   │◀────────────────────────────────────────────┘
-└──────────────────┘
-```
+![System architecture](docs/diagrams/svg/system-architecture.svg)
+
+The full architecture, with 33 editable Excalidraw diagrams, is in the [documentation](docs/docs/index.md).
 
 ### On-chain (Soroban contracts, Rust `#![no_std]`)
 
@@ -62,7 +43,7 @@ Traders sign order intents with [Freighter](https://freighter.app), the matcher 
 | --- | --- |
 | `perp-vault` | SEP-41 collateral custody, internal balances, risk-gated withdrawals |
 | `perp-engine` | Position lifecycle, execution price bands, OI caps, fees, funding indexes, realized PnL settlement |
-| `perp-order-gateway` | Settlement entry point for matched fills — nonce tracking, overfill protection, self-trade rejection, cancellations |
+| `perp-order-gateway` | Settlement entry point for matched fills, nonce tracking, overfill protection, self-trade rejection, cancellations |
 | `perp-oracle-adapter` | Guarded price snapshots: publisher auth, staleness checks, quorum medianization, deviation bounds |
 | `perp-liquidation` | Account-health liquidation executor with capped rewards and bad-debt recording |
 | `perp-insurance` | Insurance fund custody, rewards, bad-debt accounting |
@@ -75,19 +56,21 @@ The authorisation graph is strict: `Engine.open_position` requires the order gat
 
 | Service | Role |
 | --- | --- |
-| **Matcher** | Deterministic CLOB with price-time priority, partial fills, replace priority reset, market-order walking — settles fills on-chain via operator-signed `settle_fill` |
-| **Oracle keeper** | Publishes the median of Binance/Coinbase/Kraken on-chain every ~8s (≥2 sources required, deviation + USDC-depeg guards) |
-| **State indexer** | Syncs on-chain positions, OI, funding, and stats to Postgres; computes leaderboard/portfolio analytics |
+| **Matcher** | Price-time CLOB with partial fills; settles each fill on-chain with operator-submitted `settle_fill_signed` |
+| **Oracle keeper** | Fetches Binance/Coinbase/Kraken every 8 s and publishes the median on a 30 bps move or 60 s heartbeat (≥2 sources, 200 bps spread limit, Reflector cross-check, stablecoin depeg halt) |
+| **State indexer** | Syncs open interest, funding indexes and oracle prices into Postgres; aggregates volume statistics (positions are read from the chain, not indexed) |
 | **WebSocket server** | Real-time orderbook and trade broadcast |
-| **Settlement reconciler** | Recovers stuck/queued settlement transactions |
+| **Settlement reconciler** | Resolves legacy auth-entry settlement jobs |
 | **Liquidation keeper** | Scans accounts, liquidates underwater positions, and runs the contract TTL keepalive |
-| **Monitor** | Alerting for stale oracle, bad debt, settlement failures, liquidation backlog |
+| **Funding keeper** | Calls `update_funding` per market every 15 minutes (effective once funding is configured on-chain) |
+| **TTL keeper** | Extends contract instance and WASM archival TTLs (daily cron) |
+| **Monitor** | Webhook alerts for oracle age, matcher/indexer lag, DB latency, API/WS health, operator balances, funding age and insurance coverage |
 
 ### Protocol invariants (non-negotiable)
 
 1. Withdrawals are validated against **current account equity**, not stored locked margin.
 2. Liquidations are **account-health based**; position-local liquidation only for explicit isolated margin.
-3. Funding derives from market imbalance or independent mark/index divergence — never oracle minus itself.
+3. Funding derives from market imbalance or independent mark/index divergence, never oracle minus itself.
 4. Every oracle read carries source, timestamp, confidence, and freshness bounds.
 5. Insurance/SLP accounting must reconcile to vault custody plus known unsettled liabilities.
 6. Upgrade authority is protocol risk: governance delay plus emergency limits.
@@ -97,17 +80,16 @@ The authorisation graph is strict: `Engine.open_position` requires the order gat
 ```
 .
 ├── client/                  Next.js 16 trading terminal, API routes, off-chain service scripts
-│   ├── app/                 App Router pages (trade, portfolio, leaderboard, markets) + /api routes
+│   ├── app/                 App Router pages (trade, portfolio, markets) + /api routes
 │   ├── features/            Trade terminal, chart, wallet, navbar feature modules
 │   ├── scripts/             Oracle keeper, matcher, indexer, WS server, reconciler, liquidator, deploy tooling
 │   └── config/              Market configs, contract addresses, precision constants
-├── kryon-protocol/          Rust workspace — the protocol itself
+├── kryon-protocol/          Rust workspace, the protocol itself
 │   ├── contracts/           8 Soroban contracts (vault, engine, gateway, oracle, risk, …)
 │   ├── crates/              protocol-core (fixed-point math, types), risk-engine
 │   ├── infra/               Deploy manifests, runbooks, monitoring, signer/RPC ops
 │   └── prisma/              Postgres schema (orders, fills, positions, tx jobs, audit trail)
-├── docs/                    Docusaurus engineering reference (served at /docs)
-└── Audit Reports/           Internal audit reports and mainnet-implementation audit
+└── docs/                    Docusaurus documentation (served at /docs) and Excalidraw diagrams
 ```
 
 ## Deployed contracts (Stellar testnet, v4)
@@ -149,11 +131,11 @@ These contracts predate `upgrade()` and cannot be patched, so the product no lon
 
 - [Bun](https://bun.sh) (client) · Node 20+ works too
 - [Rust](https://rustup.rs) with the workspace toolchain (protocol, optional)
-- [Freighter](https://freighter.app) wallet — set to **Stellar Testnet**
+- [Freighter](https://freighter.app) wallet, set to **Stellar Testnet**
 - A Neon (or any) Postgres database
-- Desktop / large screen (≥ 1024 px) — the terminal is desktop-first
+- Desktop / large screen (≥ 1024 px), the terminal is desktop-first
 
-> Kryon runs on testnet only; fund a wallet with [Friendbot](https://laboratory.stellar.org/#account-creator?network=test) and testnet USDC. `NEXT_PUBLIC_STELLAR_NETWORK` must be `testnet` — any other value is refused at startup.
+> Kryon runs on testnet only; fund a wallet with [Friendbot](https://laboratory.stellar.org/#account-creator?network=test) and testnet USDC. `NEXT_PUBLIC_STELLAR_NETWORK` must be `testnet`, any other value is refused at startup.
 
 ### 1. Run the client
 
@@ -173,7 +155,7 @@ ORACLE_PUBLISHER_SECRET="S…"                                 # authorized orac
 npm run dev        # http://localhost:3000  →  /trade/XLM-PERP
 ```
 
-Order and market data flows through the app's own same-origin `/api` routes — no separate matcher/indexer URL is needed.
+Order and market data flows through the app's own same-origin `/api` routes, no separate matcher/indexer URL is needed.
 
 ### 2. Run the off-chain services (live prices & fills)
 
@@ -202,20 +184,19 @@ cargo test  --workspace
 | --- | --- |
 | `/` | Landing page |
 | `/trade/[market]` | Trading terminal (e.g. `/trade/XLM-PERP`) |
-| `/portfolio` | Account overview — balances, positions, history |
-| `/leaderboard` | Trader rankings |
+| `/portfolio` | Account overview: balances, positions, history |
 | `/markets` | Market list |
 | `/docs` | Full engineering documentation (Docusaurus) |
 
 ### API surface
 
-REST endpoints are Next.js route handlers under `client/app/api/**`: `orders` (submit/cancel), `fills`, `funding`, `markets`, `portfolio`, `leaderboard`, `settlements`, plus `health` and `ready` probes. The WebSocket contract and full request/response schemas are documented in the [API reference](https://kryonprotocol.vercel.app/docs/api/rest).
+REST endpoints are Next.js route handlers under `client/app/api/**`: `orders` (submit/cancel), `fills`, `funding`, `markets`, `portfolio`, `leaderboard`, `settlements`, plus `health` and `ready` probes. Request and response schemas are documented in the [REST API reference](docs/docs/07-api-reference/rest-api.md) and the [WebSocket API reference](docs/docs/07-api-reference/websocket-api.md).
 
 ## Testing & verification
 
 | Suite | Command | Coverage |
 | --- | --- | --- |
-| Protocol unit + invariants | `cargo test --workspace` | Math, risk engine, contracts, matcher determinism |
+| Protocol unit tests | `cargo test --workspace` | Fixed-point math, risk engine, all contracts except `perp-risk` (101 tests) |
 | Client unit | `npm test` | Price/size precision, market config, order-intent encoding, collateral maths |
 | Production gate | `npm run production:gate` | Config completeness before deploy |
 | Live gate | `npm run production:live-gate` | Live deployment health validation |
@@ -229,66 +210,37 @@ repository.
 
 GitHub Actions workflows (`.github/workflows/`):
 
-- **`ci.yml`** — client lint, typecheck, `npm audit`, production gate, build, plus protocol Rust checks on PRs and pushes to `main`
-- **`deploy-production.yml`** — on pushes to `main` (paths `client/**`, `docs/**`), runs a readiness gate, then deploys to the services VM over SSH and checks `/api/ready?network=testnet`
-- **`preflight.yml`** — manual gate (type `testnet`) that builds with the production env and runs `production:gate --runtime`, which requires the app/WS URLs, database, settlement key and Redis
-- **`production-validation.yml`** — manual (type `production`); validates the live app: security headers, readiness, core APIs, websocket reconnect storms, market-data soak, and required E2E evidence links
-- **`codeql.yml`** + **`dependency-review.yml`** + Dependabot — static security analysis and weekly dependency updates
+- **`ci.yml`**: client lint, typecheck, `npm audit`, production gate, build, plus protocol Rust checks on PRs and pushes to `main`
+- **`deploy-production.yml`**: on pushes to `main` (paths `client/**`, `docs/**`), runs a readiness gate, then deploys to the services VM over SSH and checks `/api/ready?network=testnet`
+- **`preflight.yml`**: manual gate (type `testnet`) that builds with the production env and runs `production:gate --runtime`, which requires the app/WS URLs, database, settlement key and Redis
+- **`production-validation.yml`**: manual (type `production`); validates the live app: security headers, readiness, core APIs, websocket reconnect storms, market-data soak, and required E2E evidence links
+- **`codeql.yml`** + **`dependency-review.yml`** + Dependabot: static security analysis and weekly dependency updates
 
 <details>
-<summary>Required GitHub variables & secrets for production</summary>
+<summary>GitHub variables and secrets used by the workflows</summary>
 
-**Variables**
+| Workflow | Variables | Secrets |
+| --- | --- | --- |
+| `deploy-production.yml` | `NEXT_PUBLIC_APP_URL` | `VM_SSH_KEY`, `VM_HOST`, `VM_USER`, optional `VM_HOST_KEY` |
+| `preflight.yml` | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_WS_URL`, `NEXT_PUBLIC_ACTIVE_MARKETS` | `DATABASE_URL`, `MATCHER_OPERATOR_SECRET`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
+| `production-validation.yml` | live-validation URLs and market id (see the workflow) | none |
 
-```ini
-NEXT_PUBLIC_APP_URL              NEXT_PUBLIC_CONTRACT_VAULT
-NEXT_PUBLIC_WS_URL               NEXT_PUBLIC_CONTRACT_ENGINE
-NEXT_PUBLIC_STELLAR_RPC_URL      NEXT_PUBLIC_CONTRACT_ORDER_GATEWAY
-NEXT_PUBLIC_ACTIVE_MARKETS       NEXT_PUBLIC_CONTRACT_INSURANCE
-NEXT_PUBLIC_CONTRACT_GOVERNANCE  NEXT_PUBLIC_CONTRACT_LIQUIDATION
-NEXT_PUBLIC_CONTRACT_ORACLE_ADAPTER  NEXT_PUBLIC_CONTRACT_RISK
-NEXT_PUBLIC_ASSET_NATIVE_XLM     NEXT_PUBLIC_ASSET_USDC
-NEXT_PUBLIC_USDC_ISSUER
-```
-
-**Secrets**
-
-```ini
-DATABASE_URL
-MATCHER_OPERATOR_SECRET
-UPSTASH_REDIS_REST_URL
-UPSTASH_REDIS_REST_TOKEN
-CLOUDFLARE_API_TOKEN      # deploy-production.yml (Workers Scripts: Edit)
-CLOUDFLARE_ACCOUNT_ID     # deploy-production.yml
-VERCEL_ORG_ID             # deploy-client.yml (legacy manual deploy)
-VERCEL_PROJECT_ID
-VERCEL_TOKEN
-```
-
-Worker **runtime** secrets (`DATABASE_URL`, `MATCHER_OPERATOR_SECRET`, `UPSTASH_*`) are set once with `wrangler secret put`, never through CI.
-
-**Live-validation variables**
-
-```ini
-WALLET_E2E_EVIDENCE_URL     OBSERVABILITY_DASHBOARD_URL   LIVE_GATE_MARKET_ID
-TRADING_E2E_EVIDENCE_URL    INCIDENT_RUNBOOK_URL          ROLLBACK_RUNBOOK_URL
-```
+Runtime secrets for the keepers are supplied on the host, never through CI.
 
 </details>
 
 ## Security
 
-- **Trusted-operator settlement:** the matcher operator can only settle fills that both traders have signed; it cannot invent positions, move collateral, or bypass price bands, expiry, cancellation, overfill, or self-trade checks enforced on-chain.
-- **Guarded oracle:** publisher authorization, publish-time staleness rejection, monotonic replay rejection, confidence checks, quorum medianization with three-source minimum, and source-deviation bounds.
-- **Two-step admin transfer** on all contracts holding privileged config roles; governance timelock plus guardian pause.
-- **Audits:** internal audit reports (including a mainnet-implementation audit) live in [`Audit Reports/`](Audit%20Reports/). All flagged high/critical findings were fixed and the contracts redeployed.
-- Precision model: prices and PnL use 1e18 fixed-point; USDC amounts use 1e7 (Stellar stroop-equivalent) — all math is checked, deterministic, and dependency-light.
+- **Operator-submitted, user-authorised settlement.** Only the registered matcher operator can submit fills, and only fills that both traders signed. The gateway re-verifies each signature and enforces price limits, expiry, cancellation, overfill and self-trade checks; the engine enforces the oracle band and initial margin.
+- **Guarded oracle.** Publisher authorisation, staleness and confidence checks on every write and read, and monotonic publish times. A quorum (median) feed type is implemented but every live feed is single-source.
+- **Administration.** Two-step admin transfer on all contracts and a 48-hour governance timelock with guardian pause. On testnet v4 the admin of all eight contracts is still a single keypair; the timelock does not yet control any contract.
+- **Assurance.** The protocol has **not** been externally audited. The workspace's 101 unit tests pass.
 
-The full threat model and trust assumptions are documented in [Security](https://kryonprotocol.vercel.app/docs/security).
+See the [security model](docs/docs/08-security/threat-model.md) and [access control](docs/docs/08-security/access-control.md).
 
 ## Documentation
 
-The complete engineering reference — architecture, trade lifecycle, PnL & funding math, database schema, REST/WebSocket APIs, runbooks, and mainnet-readiness analysis — is built with Docusaurus from [`docs/`](docs/) and served at [/docs](https://kryonprotocol.vercel.app/docs) on the live deployment.
+The technical documentation, architecture, contract references, trading mechanics, infrastructure, APIs, security and operations, is built with Docusaurus from [`docs/`](docs/) and served at `/docs` on the web deployment. Start at the [documentation index](docs/docs/index.md).
 
 ```bash
 cd docs && npm install && npm start   # local docs at http://localhost:3000
