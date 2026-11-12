@@ -13,7 +13,6 @@ import { useNetwork } from '@/features/network/NetworkContext';
 const LANDING_NAV = [
   { to: `/trade/${DEFAULT_MARKET_SYMBOL}`, label: 'Trade' },
   { to: '/portfolio', label: 'Portfolio' },
-  { to: '/leaderboard', label: 'Leaderboard' },
   // Docs is a static Docusaurus build served from this same deployment at /docs.
   // Use a plain anchor (hardNav) so it does a real navigation to the static site
   // instead of client-side routing — there is no /docs route in the Next app.
@@ -36,7 +35,7 @@ const buildHeadlines = (networkLabel: string) => [
 ];
 
 const SOLUTIONS = [
-  { title: 'Perpetuals', desc: 'Trade perpetual futures on tokenized real-world assets and crypto, USDC-settled, with leverage and transparent funding.' },
+  { title: 'Perpetuals', desc: 'Perpetual futures on major crypto assets, USDC-settled on Soroban, for market makers and traders who hedge at their own limit price.' },
   { title: 'On-Chain Settlement', desc: 'Collateral, margin, and settlement live on Soroban. You keep your keys — every fill settles to a contract you control.' },
   { title: 'CLOB Matching', desc: 'An off-chain central-limit order book matches orders price-time for low-latency fills, while on-chain state stays the source of truth.', accent: true },
   { title: 'Risk & Liquidation', desc: 'A transparent margin engine, funding mechanism, and insurance-backed liquidation keep markets solvent and fair.' },
@@ -48,10 +47,7 @@ const INSIGHTS = [
   { title: 'Self-Custodial Trading with Freighter', date: 'May 6, 2026', desc: 'Sign orders from your own wallet — your keys, your collateral, every fill.' },
   { title: 'Understanding Funding & Mark Price on Kryon', date: 'April 24, 2026', desc: 'How the funding mechanism anchors perp prices to the oracle.' },
   { title: 'Inside the Liquidation & Insurance Engine', date: 'April 11, 2026', desc: 'Transparent margin checks and an insurance fund that keeps markets solvent.' },
-  { title: 'The Road to Perpetuals', date: 'March 30, 2026', desc: 'Bringing tokenized real-world assets to perpetual futures on Stellar.' },
   { title: 'Oracle Design: Pricing Perps on Soroban', date: 'March 18, 2026', desc: 'How the oracle adapter publishes the prices the engine settles against.' },
-  { title: 'Leaderboard & Portfolio Analytics', date: 'March 5, 2026', desc: 'Track PnL, open interest, and ranking across every market in real time.' },
-  { title: 'Kryon Stress-Test Report: Production Hardening', date: 'February 20, 2026', desc: 'Findings and fixes from load-testing the matcher, indexer, and settlement path.' },
 ];
 
 function LoadingOverlay() {
@@ -648,7 +644,6 @@ export function LandingPage() {
                 <ul className="s5-footer-col-list">
                   <li><span className="s5-footer-col-arrow">↳</span><Link href={`/trade/${DEFAULT_MARKET_SYMBOL}`} className="text-inherit">Trade</Link></li>
                   <li><span className="s5-footer-col-arrow">↳</span><Link href="/portfolio" className="text-inherit">Portfolio</Link></li>
-                  <li><span className="s5-footer-col-arrow">↳</span><Link href="/leaderboard" className="text-inherit">Leaderboard</Link></li>
                 </ul>
               </div>
               <div>

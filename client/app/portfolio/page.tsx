@@ -77,7 +77,6 @@ export default function PortfolioPage() {
   const realizedPnl = a?.realizedPnl ?? 0;
   const pnl = realizedPnl + unrealizedPnl;
   const volume = a?.volume ?? 0;
-  const winRate = a?.winRate ?? 0;
   const equityCurve = portfolio?.equityCurve ?? [];
   const pnlEvents = [...(portfolio?.pnlHistory ?? [])].reverse();
   const pnlCurve = pnlEvents.reduce<Array<{ value: number; label: string }>>((acc, ev) => {
@@ -91,7 +90,6 @@ export default function PortfolioPage() {
     ["Realized PNL", usd(realizedPnl), realizedPnl >= 0 ? "text-[#1fae5b]" : "text-[#e34c4c]"],
     ["Unrealized PNL", usd(unrealizedPnl), unrealizedPnl >= 0 ? "text-[#1fae5b]" : "text-[#e34c4c]"],
     ["Volume", usd(volume)],
-    ["Win Rate", `${(winRate * 100).toFixed(1)}%`],
     ["Total Equity", usd(equity)],
     ["Fees Paid", usd(a?.totalFeesPaid ?? 0)],
     ["Net Funding", usd(a?.totalFundingPaid ?? 0)],
