@@ -29,7 +29,7 @@ const SYSTEM_STATUS = [
 // is only known per-render. Building it at module scope would bake in the
 // deployment's own network and hydrate-mismatch for anyone on the other venue.
 const buildHeadlines = (networkLabel: string) => [
-  { title: `${ACTIVE_MARKET_SYMBOLS.length} Perpetual Markets Live on ${networkLabel}`, desc: `${ACTIVE_MARKET_SYMBOLS.map((s) => s.replace('-PERP', '')).join(' · ')} — USDC-settled perpetual futures with on-chain margin and settlement, traded self-custodial straight from your Freighter wallet.` },
+  { title: `${ACTIVE_MARKET_SYMBOLS.length} Perpetual Market${ACTIVE_MARKET_SYMBOLS.length === 1 ? '' : 's'} on ${networkLabel}`,desc: `${ACTIVE_MARKET_SYMBOLS.map((s) => s.replace('-PERP', '')).join(' · ')} — USDC-settled perpetual futures with on-chain margin and settlement, traded self-custodial straight from your Freighter wallet.` },
   { title: 'Kryon Brings Perpetuals to Stellar', desc: 'A decentralized exchange pairing an off-chain central-limit order book with a fully on-chain margin and settlement engine on Soroban.' },
   { title: 'Sub-Second Fills, On-Chain Truth', desc: 'Price-time matching off-chain for a familiar low-latency perp experience, with custody, margin, and settlement enforced on-chain.' },
 ];
