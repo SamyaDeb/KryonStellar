@@ -4,10 +4,16 @@ title: Quickstart
 sidebar_position: 1
 ---
 
-# Build a trading agent on Kryon
+# Build a trading bot on Kryon
 
 Kryon is an on-chain perpetuals CLOB on Stellar. This guide takes you from
-nothing to a working bot on testnet.
+nothing to a working rule-based bot on testnet.
+
+:::caution Not published yet
+`@kryon/sdk` and `@kryon/agent` are **not on npm yet**, so `npm install` below
+will fail today. Publishing the SDK is planned work. Until then, build the order message
+yourself from [Signing](./signing), which documents the exact bytes.
+:::
 
 ## Why Kryon is unusually easy to automate
 
@@ -23,8 +29,10 @@ That has three consequences worth designing around:
 
 1. **A bot does not need to stay connected.** Sign, disconnect, come back to a
    settled position.
-2. **There is no settlement key.** Nothing at the venue can move your funds; a
-   signature over your specific order is the only authority that exists.
+2. **Nothing at the venue can move your funds.** A signature over your specific
+   order is the only authority that can open or change your position. Today only
+   the Kryon matcher's operator key can *submit* a settlement; opening
+   settlement to anyone is planned work.
 3. **An order you cannot settle is worse than no order.** Because the signature
    is verified *again* on chain, a wrong one produces an order that matches and
    then fails settlement repeatedly until it expires. Use the SDK rather than
